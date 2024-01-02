@@ -1,4 +1,15 @@
-class Cat():
+"""
+Абстракция
+"""
+class Predator:
+    def hunt(self):
+        print('Охотится...')
+
+"""
+Инкапсуляция
+"""
+
+class Cat(Predator):
     def __init__(self, breed, color, age):
         self.breed = breed
         self.color = color
@@ -7,30 +18,30 @@ class Cat():
     @property
     def breed(self):
         return self.breed
-
-    @property
-    def color(self):
-        return self.color
-
-    @property
-    def age(self):
-        return self.age
+    #
+    # @property
+    # def color(self):
+    #     return self.color
+    #
+    # @property
+    # def age(self):
+    #     return self.age
 
     @breed.setter
     def breed(self, value):
         self.breed = value
-
-    @color.setter
-    def color(self, value):
-        self.color = value
-
-    @age.setter
-    def age(self, value):
-        if value > self.age:
-            self.age = value
-        else:
-            print("Кошка не может стать моложе")
-        return self.age
+    #
+    # @color.setter
+    # def color(self, value):
+    #     self.color = value
+    #
+    # @age.setter
+    # def age(self, value):
+    #     if value > self.age:
+    #         self.age = value
+    #     else:
+    #         print("Кошка не может стать моложе")
+    #     return self.age
 
     def meow(self):
         print('Мяу!')
@@ -39,7 +50,9 @@ class Cat():
         print('Мрррр')
 
 
-
+"""
+Наследование
+"""
 
 class HomeCat(Cat):
     def __init__(self, breed, color, age, owner, name):
@@ -73,6 +86,12 @@ cat1.age = 2
 
 cat2 = HomeCat("Мейкун", "серый", 3, "Михаил", "Бука")
 
-print(cat1)
-print(cat2)
+cat1.hunt()
+print(cat1.breed)
+print(id(cat1))
+
+
+cat2.hunt()
+print(cat2.breed)
+print(id(cat2))
 
