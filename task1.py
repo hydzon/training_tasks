@@ -3,6 +3,8 @@
 
 """
 
+import numpy as np
+
 string = "Меня зовут Александр и мне 25 лет. Я занимаюсь программированием уже 5 лет и мне это нравится."
 
 worlds = string.split()
@@ -23,3 +25,5 @@ for el in d.items():
 
 print(d)
 print(i)
+
+print(np.array([1]))
