@@ -6,12 +6,13 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import requests
 import time
-
+# from googletrans import Translator
 
 auto_catalog = {}
 auto_logos = {}
 headers = {
     'Accept': '*/*',
+    # 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/120.0.0.0 YaBrowser/24.1.0.0 Safari/537.36'
 }
@@ -40,6 +41,12 @@ def save_page(url, file_path):
         file.write(source.text)
 
 
+def find_mark_in_logo_dict(mark):
+    for logo in auto_logos.items():
+        if re.search(r'\b' + mark.lower() + r'\b', logo[1]['info'].lower()):
+            return logo[0]
+
+
 async def async_save_page(url, file_path, session):
     async with session.get(url) as response:
         if response.status != 200:
@@ -66,11 +73,39 @@ async def async_save_logos(url):
     #             }
 
 
+async def translit(input_string, session):
+    '''
+        Функция для транслита текста
+    '''
+    params = {
+        'ui': 'ru',
+        'text': input_string,
+        'lang': 'en-ru'
+    }
+    url = "https://dictionary.yandex.net/dicservice.json/lookup"
+    async with session.get(url, headers=headers, params=params) as response:
+        if response.status != 200:
+            print(response.status)
+        else:
+            return await response.json()['def'][0]['tr'][0]['text']
+
+
+async def async_trasliterate():
+    tasks = []
+    global auto_logos
+    with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'r', encoding='utf-8') as json_file:
+        auto_logos = json.load(json_file)
+    async with aiohttp.ClientSession() as session:
+        for logo in auto_logos.items():
+            ...
+
+
 async def async_parsing():
     tasks = []
     global page_counter
     global auto_catalog
     global auto_logos
+
 
     '''
         Блок скачивания html страниц с подробной информацией о логотипах разных марок 
@@ -97,7 +132,7 @@ async def async_parsing():
     #     print(f'Сохранено за {time.time() - start:.2f}с')
 
     '''
-        Блок парсинга полученной выше инфомации и скачивания img файлов логотипов 
+        Блок парсинга инфомации о логотипах и скачивания img файлов логотипов 
     '''
     # with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'r', encoding='utf-8') as json_file:
     #     auto_logos = json.load(json_file)
@@ -127,9 +162,54 @@ async def async_parsing():
     # with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'w', encoding='utf-8') as json_file:
     #     json.dump(auto_logos, json_file, indent=4, ensure_ascii=False)
 
+    '''
+        Блок скачивания html страниц с информацией о моделях разных марок 
+    '''
+    # async with aiohttp.ClientSession() as session:
+    #     for i in range(4):
+    #         with open(f'car_logos_page{i+1}.html', 'r', encoding='utf-8') as file:
+    #             source = file.read()
+    #         soup = BeautifulSoup(source, 'lxml')
+    #         for el in soup.find_all(class_='meta-image'):
+    #             name = el.find('a').get('title')
+    #             tasks.append(async_save_page(el.find('a').get('href'),
+    #                                          f'AutoCatalog/_AutoLogos_/{name}.html',
+    #                                          session))
+    #             auto_logos[name] = {
+    #                 'html_file': name + '.html'
+    #             }
+    #     with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'w', encoding='utf-8') as json_file:
+    #         json.dump(auto_logos, json_file, indent=4, ensure_ascii=False)
+    #     page_counter = len(tasks)
+    #     start = time.time()
+    #     print(f'Старт сохранения страниц...')
+    #     await asyncio.gather(*tasks)
+    #     print(f'Сохранено за {time.time() - start:.2f}с')
+
+
+    # with open('list_links_auto.txt', 'r') as file:
+    #     source = file.read()
+    # soup = BeautifulSoup(source, 'lxml')
+    #
+    # for mark in soup.find_all('a')[:5]:
+    #     print(mark.text + ' -- ' + mark.get('href'))
+    #     Path(f'AutoCatalog/{mark.text}').mkdir(parents=True, exist_ok=True)
+    #     save_page(mark.get('href'), f'AutoCatalog/{mark.text}.html')
+    #     auto_catalog[mark.text] = {
+    #         'Link': mark.get('href'),
+    #         'Models': {}
+    #     }
+
+    # with open('AutoCatalog/Acura.html', 'r') as file:
+    #     source = file.read()
+    # soup = BeautifulSoup(source, 'lxml')
+    #
+    # print(soup.find(class_=re.compile(r'css-ofm6mg exkrjba0')).find_all('a'))
+
 
 def sync_parsing():
     global auto_logos
+    global auto_catalog
     '''
         Блок парсинга инфомации о логотипах 
     '''
@@ -159,36 +239,52 @@ def sync_parsing():
     # with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'w', encoding='utf-8') as json_file:
     #     json.dump(auto_logos, json_file, indent=4, ensure_ascii=False)
 
+    '''
+        Консолидация информации из файлов auto_catalog.json и auto_logos.json
+    '''
+    #
+    # with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'r', encoding='utf-8') as json_file:
+    #     auto_logos = json.load(json_file)
+    # with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
+    #     auto_catalog = json.load(json_file)
+    #
+    # for mark in auto_catalog:
+    #     auto_catalog[mark]['link'] = [auto_catalog[mark]['link'],
+    #                                   'https://' + re.findall(r'(\w+)/$', auto_catalog[mark]['link'])[0] + '.drom.ru']
+    #     if mark in auto_logos:
+    #         auto_catalog[mark]['logo'] = 'AutoCatalog/_AutoLogos_/' + auto_logos[mark]['img_file']
+    #         auto_catalog[mark]['info'] = auto_logos[mark]['info']
+    #     else:
+    #         finder = find_mark_in_logo_dict(mark)
+    #         if finder:
+    #             auto_catalog[mark]['logo'] = 'AutoCatalog/_AutoLogos_/' + auto_logos[finder]['img_file']
+    #             auto_catalog[mark]['info'] = auto_logos[finder]['info']
+    #         else:
+    #             auto_catalog[mark]['logo'] = ''
+    #             auto_catalog[mark]['info'] = ''
+    #
+    # with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
+    #     json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
+
+
+
+    # for mark in auto_catalog:
+    #     if not auto_catalog[mark]['logo'] or not auto_catalog[mark]['info']:
+    #         print(auto_catalog[mark])
+
 
 def main():
     # url = 'https://www.drom.ru/catalog/'
-    # save_page(url)
-    # for i in range(1, 5):
-    #     url = f'https://автолого.рф/car-logos/page/{i}/'
-    #     save_page(url, f'car_logos_page{i}.html')
+    # save_page(url, 'auto_catalog.html')
 
     sync_parsing()
+
     # asyncio.run(async_parsing())
 
-    # with open('list_links_auto.txt', 'r') as file:
-    #     source = file.read()
-    # soup = BeautifulSoup(source, 'lxml')
-    #
-    # for mark in soup.find_all('a')[:5]:
-    #     print(mark.text + ' -- ' + mark.get('href'))
-    #     Path(f'AutoCatalog/{mark.text}').mkdir(parents=True, exist_ok=True)
-    #     save_page(mark.get('href'), f'AutoCatalog/{mark.text}.html')
-    #     auto_catalog[mark.text] = {
-    #         'Link': mark.get('href'),
-    #         'Models': {}
-    #     }
+    # translator = Translator()
+    # print(translator.translate('Aaglander', src='en', dest='ru'))
 
-
-    # with open('AutoCatalog/Acura.html', 'r') as file:
-    #     source = file.read()
-    # soup = BeautifulSoup(source, 'lxml')
-    #
-    # print(soup.find(class_=re.compile(r'css-ofm6mg exkrjba0')).find_all('a'))
+    # print(re.findall(r'(\w+)/$', 'https://www.drom.ru/catalog/audi/')[0])
 
 
 if __name__ == '__main__':
