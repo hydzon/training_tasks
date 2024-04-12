@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import requests
 import time
-from googletrans import Translator
 from translit import *
 
 auto_catalog = {}
@@ -226,64 +225,58 @@ def sync_parsing():
     with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
         auto_catalog = json.load(json_file)
     session = requests.Session()
-    # for mark in auto_catalog:
-    mark = 'DW Hower'
-    if not auto_catalog[mark]['logo']:
-        try:
-            response = session.get(auto_catalog[mark]['link'][1])
-            soup = BeautifulSoup(response.text, 'lxml')
-            img_link = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
+    for mark in auto_catalog:
+        if not auto_catalog[mark]['logo']:
+            try:
+                response = session.get(auto_catalog[mark]['link'][1])
+                soup = BeautifulSoup(response.text, 'lxml')
+                img_link = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
 
-            if img_link:
-                with open('AutoCatalog/_AutoLogos_/' + mark + '.png', 'wb') as img_file:
-                    img_file.write(get_response(img_link).content)
-                auto_catalog[mark]['logo'] = 'AutoCatalog/_AutoLogos_/' + mark + '.png'
-                print(auto_catalog[mark])
-        except Exception as e:
-            print('Error - ' + auto_catalog[mark])
+                if img_link:
+                    with open('AutoCatalog/_AutoLogos_/' + mark + '.png', 'wb') as img_file:
+                        img_file.write(get_response(img_link).content)
+                    auto_catalog[mark]['logo'] = 'AutoCatalog/_AutoLogos_/' + mark + '.png'
+            except Exception as e:
+                print('Error - ' + auto_catalog[mark])
+            print(mark + ':')
+            print(auto_catalog[mark]['logo'])
 
-    if not auto_catalog[mark]['info']:
-        try:
-            response = session.get('https://1000logos.net/' + mark.lower() + '-logo/')
-            soup = BeautifulSoup(response.text, 'lxml')
-            img_link = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
+        if not auto_catalog[mark]['info']:
+            try:
+                response = session.get('https://1000logos.net/' + auto_catalog[mark]['alt_name'] + '-logo/')
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'lxml')
+                    info = soup.find('div', class_='entry-content').find_all('p')
+                    if info[1]:
+                        auto_catalog[mark]['info'] = info[1].text
+            except Exception as e:
+                print('Error - ' + auto_catalog[mark])
+            print(auto_catalog[mark]['info'] + '\n')
 
-            if img_link:
-                with open('AutoCatalog/_AutoLogos_/' + mark + '.png', 'wb') as img_file:
-                    img_file.write(get_response(img_link).content)
-                auto_catalog[mark]['info'] = 'AutoCatalog/_AutoLogos_/' + mark + '.png'
-                print(auto_catalog[mark])
-        except Exception as e:
-            print('Error - ' + auto_catalog[mark])
 
 
 def main():
     # url = 'https://www.drom.ru/catalog/'
     # save_page(url, 'auto_catalog.html')
 
-    # sync_parsing()
+    sync_parsing()
 
     # asyncio.run(async_parsing())
 
-    translator = Translator()
-    # print(translator.translate('lander', src='en', dest='ru'))
-
     # print(re.findall(r'(\w+)/$', 'https://www.drom.ru/catalog/audi/')[0])
-
 
     '''
         Правка данных в файле auto_catalog.json
     '''
-    session = requests.Session()
-    with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
-        auto_catalog = json.load(json_file)
-    for key, value in auto_catalog.items():
-        alt_name = re.findall(r'(\w+)/$', value['link'][0])[0]
-        value['alt_name'] = alt_name
-        if alt_name.count('_'):
-            value['alt_name'] = alt_name.replace('_', '-')
-    with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
-        json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
+    # with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
+    #     auto_catalog = json.load(json_file)
+    # for key, value in auto_catalog.items():
+    #     alt_name = re.findall(r'(\w+)/$', value['link'][0])[0]
+    #     value['alt_name'] = alt_name
+    #     if alt_name.count('_'):
+    #         value['alt_name'] = alt_name.replace('_', '-')
+    # with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
+    #     json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
 
 
 if __name__ == '__main__':
