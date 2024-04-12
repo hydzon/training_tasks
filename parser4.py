@@ -6,7 +6,8 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import requests
 import time
-# from googletrans import Translator
+from googletrans import Translator
+from translit import *
 
 auto_catalog = {}
 auto_logos = {}
@@ -162,50 +163,6 @@ async def async_parsing():
     # with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'w', encoding='utf-8') as json_file:
     #     json.dump(auto_logos, json_file, indent=4, ensure_ascii=False)
 
-    '''
-        Блок скачивания html страниц с информацией о моделях разных марок 
-    '''
-    # async with aiohttp.ClientSession() as session:
-    #     for i in range(4):
-    #         with open(f'car_logos_page{i+1}.html', 'r', encoding='utf-8') as file:
-    #             source = file.read()
-    #         soup = BeautifulSoup(source, 'lxml')
-    #         for el in soup.find_all(class_='meta-image'):
-    #             name = el.find('a').get('title')
-    #             tasks.append(async_save_page(el.find('a').get('href'),
-    #                                          f'AutoCatalog/_AutoLogos_/{name}.html',
-    #                                          session))
-    #             auto_logos[name] = {
-    #                 'html_file': name + '.html'
-    #             }
-    #     with open('AutoCatalog/_AutoLogos_/auto_logos.json', 'w', encoding='utf-8') as json_file:
-    #         json.dump(auto_logos, json_file, indent=4, ensure_ascii=False)
-    #     page_counter = len(tasks)
-    #     start = time.time()
-    #     print(f'Старт сохранения страниц...')
-    #     await asyncio.gather(*tasks)
-    #     print(f'Сохранено за {time.time() - start:.2f}с')
-
-
-    # with open('list_links_auto.txt', 'r') as file:
-    #     source = file.read()
-    # soup = BeautifulSoup(source, 'lxml')
-    #
-    # for mark in soup.find_all('a')[:5]:
-    #     print(mark.text + ' -- ' + mark.get('href'))
-    #     Path(f'AutoCatalog/{mark.text}').mkdir(parents=True, exist_ok=True)
-    #     save_page(mark.get('href'), f'AutoCatalog/{mark.text}.html')
-    #     auto_catalog[mark.text] = {
-    #         'Link': mark.get('href'),
-    #         'Models': {}
-    #     }
-
-    # with open('AutoCatalog/Acura.html', 'r') as file:
-    #     source = file.read()
-    # soup = BeautifulSoup(source, 'lxml')
-    #
-    # print(soup.find(class_=re.compile(r'css-ofm6mg exkrjba0')).find_all('a'))
-
 
 def sync_parsing():
     global auto_logos
@@ -266,25 +223,80 @@ def sync_parsing():
     # with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
     #     json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
 
-
-
+    with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
+        auto_catalog = json.load(json_file)
+    session = requests.Session()
     # for mark in auto_catalog:
-    #     if not auto_catalog[mark]['logo'] or not auto_catalog[mark]['info']:
-    #         print(auto_catalog[mark])
+    mark = 'DW Hower'
+    if not auto_catalog[mark]['logo']:
+        try:
+            response = session.get(auto_catalog[mark]['link'][1])
+            soup = BeautifulSoup(response.text, 'lxml')
+            img_link = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
+
+            if img_link:
+                with open('AutoCatalog/_AutoLogos_/' + mark + '.png', 'wb') as img_file:
+                    img_file.write(get_response(img_link).content)
+                auto_catalog[mark]['logo'] = 'AutoCatalog/_AutoLogos_/' + mark + '.png'
+                print(auto_catalog[mark])
+        except Exception as e:
+            print('Error - ' + auto_catalog[mark])
+
+    if not auto_catalog[mark]['info']:
+        try:
+            response = session.get('https://1000logos.net/' + mark.lower() + '-logo/')
+            soup = BeautifulSoup(response.text, 'lxml')
+            img_link = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
+
+            if img_link:
+                with open('AutoCatalog/_AutoLogos_/' + mark + '.png', 'wb') as img_file:
+                    img_file.write(get_response(img_link).content)
+                auto_catalog[mark]['info'] = 'AutoCatalog/_AutoLogos_/' + mark + '.png'
+                print(auto_catalog[mark])
+        except Exception as e:
+            print('Error - ' + auto_catalog[mark])
 
 
 def main():
     # url = 'https://www.drom.ru/catalog/'
     # save_page(url, 'auto_catalog.html')
 
-    sync_parsing()
+    # sync_parsing()
 
     # asyncio.run(async_parsing())
 
-    # translator = Translator()
-    # print(translator.translate('Aaglander', src='en', dest='ru'))
+    translator = Translator()
+    # print(translator.translate('lander', src='en', dest='ru'))
 
     # print(re.findall(r'(\w+)/$', 'https://www.drom.ru/catalog/audi/')[0])
+
+
+    '''
+        Правка данных в файле auto_catalog.json
+    '''
+    session = requests.Session()
+    with open('AutoCatalog/auto_catalog.json', 'r', encoding='utf-8') as json_file:
+        auto_catalog = json.load(json_file)
+    for key, value in auto_catalog.items():
+        alt_name = re.findall(r'(\w+)/$', value['link'][0])[0]
+        value['alt_name'] = alt_name
+        if alt_name.count('_'):
+            value['alt_name'] = alt_name.replace('_', '-')
+
+        if key == 'Audi':
+            try:
+                response = session.get(value['link'][0])
+                soup = BeautifulSoup(response.text, 'lxml')
+                rus_name = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
+
+                value['rus_name']
+                print(translit_eng_to_ru(key))
+                print(alt_name + '\n')
+            except:
+                print('Error - ' + alt_name)
+
+    # with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
+    #     json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
 
 
 if __name__ == '__main__':
