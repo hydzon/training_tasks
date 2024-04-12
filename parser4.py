@@ -282,21 +282,8 @@ def main():
         value['alt_name'] = alt_name
         if alt_name.count('_'):
             value['alt_name'] = alt_name.replace('_', '-')
-
-        if key == 'Audi':
-            try:
-                response = session.get(value['link'][0])
-                soup = BeautifulSoup(response.text, 'lxml')
-                rus_name = 'https:' + soup.find(class_='b-flex b-flex_align_left').find('img').get('src')
-
-                value['rus_name']
-                print(translit_eng_to_ru(key))
-                print(alt_name + '\n')
-            except:
-                print('Error - ' + alt_name)
-
-    # with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
-    #     json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
+    with open('AutoCatalog/auto_catalog.json', 'w', encoding='utf-8') as json_file:
+        json.dump(auto_catalog, json_file, indent=4, ensure_ascii=False)
 
 
 if __name__ == '__main__':
